@@ -1,8 +1,12 @@
 import time
 import json
 from flask import Flask, request, Response, jsonify
+from flask_pymongo import PyMongo
+from functools import wraps
 
 app = Flask(__name__)
+app.config["MONGO_URI"] = "mongodb://root:password1@ds151086.mlab.com:51086/diary_app"
+mongo = PyMongo(app)
 
 # Checks username and password
 def check_auth(username, password):
@@ -27,7 +31,9 @@ def requires_auth(f):
 
 @app.route('/')
 def hello():
-    return jsonify({"Success": True})
+    diary_entry = mongo.db.diary_entries.find_one({'test': 'tesdsds'})
+    return jsonify({"Success": diary_entry['test']})
+
 
 @app.route('/deleteallreadnotifications', methods=['DELETE'])
 @requires_auth
@@ -215,4 +221,6 @@ def CheckUnreadAlerts(StoreID):
 
 if __name__ == "__main__":
     # Running the flask app
-    app.run(host="0.0.0.0", ssl_context='adhoc')
+    # This previous setting enables SSL - commented out in the current file
+    #app.run(host="0.0.0.0", ssl_context='adhoc')
+    app.run()
