@@ -3,15 +3,21 @@ import json
 from flask import Flask, request, Response, jsonify
 from flask_pymongo import PyMongo
 from functools import wraps
+from bson.objectid import ObjectId
+import datetime
+#from classes.diary_entry import diary_entry
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://root:password1@ds151086.mlab.com:51086/diary_app"
 mongo = PyMongo(app)
 
 # Checks username and password
+
+
 def check_auth(username, password):
     return username == 'diary' and password == 'diaryapp'
 # Returns if authenticated or not
+
 
 def authenticate():
     return Response(
@@ -19,6 +25,7 @@ def authenticate():
         'You have to login with proper credentials', 401,
         {'WWW-Authenticate': 'Basic realm="Login Required"'})
 # creates the decorator the enables auth on endpoints
+
 
 def requires_auth(f):
     @wraps(f)
@@ -29,194 +36,45 @@ def requires_auth(f):
         return f(*args, **kwargs)
     return decorated
 
+
 @app.route('/')
 def hello():
     diary_entry = mongo.db.diary_entries.find_one({'test': 'tesdsds'})
+    # figure out how to make this work
+    test = mongo.db.diary_entries.find().sort("entryDate", -1).limit(50).skip(1)
+    print(test[0])
     return jsonify({"Success": diary_entry['test']})
 
 
-@app.route('/deleteallreadnotifications', methods=['DELETE'])
+@app.route('/insertEntry', methods=['POST'])
 @requires_auth
-def deleteallreadnotifications():
-    Notifications_Search = notification_records.scan(
-        FilterExpression=Attr('ReadReceiptStatus').eq(1))
-    for notification in Notifications_Search["Items"]:
-        notification_records.delete_item(Key={
-            "ID": notification["ID"]
-        })
-    return jsonify({"Success": True})
-
-@app.route('/deleteallnotifications', methods=['DELETE'])
-@requires_auth
-def deleteallnotifications():
-    Notifications_Search = notification_records.scan()
-    for notification in Notifications_Search["Items"]:
-        notification_records.delete_item(Key={
-            "ID": notification["ID"]
-        })
-    return jsonify({"Success": True})
-
-# endpoint to get all of the notifications in DynamoDB
-@app.route('/getallnotificationrecords')
-@requires_auth
-def getallnotificationrecords():
-    notifications = []
-    Notifications_Search = notification_records.scan()
-    for notification in Notifications_Search["Items"]:
-        notifications.append({
-            "OrderID": notification["OrderID"],
-            "OrderCreationDate": notification["OrderCreationDate"],
-            "StoreID": int(notification["StoreID"]),
-            "NotificationCreationDate": notification["NotificationCreationDate"],
-            "ReadReceiptStatus": int(notification["ReadReceiptStatus"])
-        }
-        )
-    return jsonify({"Success": True, "Payload": notifications})
-
-# New order submitted from OMS
-@app.route('/addorder', methods=['POST'])
-@requires_auth
-def addorder():
+def insertEntry():
     # change request received through endpoint to JSON
     Payload = request.json
-    # create the insert object into DB
-    BOPUS_Order = {
-        "ID": uuid.uuid4().hex,
-        "OrderID": Payload["OrderID"],
-        "OrderCreationDate": Payload["OrderCreationDate"],
-        "StoreID": int(Payload["StoreID"]),
-        "NotificationCreationDate": time.strftime('%x %X'),
-        "ReadReceiptStatus": 0,
-    }
-
-    response = store_information.scan(
-        FilterExpression=Attr('StoreID').eq(Payload["StoreID"]))
-    # Find all devices attached to the specified store, and send notification - Try/except to skip if a notification error occurs
-    if Payload["dev_flag"] == False:
-        for Device in response['Items']:
-            try:
-                sendpushnotification(
-                    Device["DeviceToken"], Payload["OrderID"], Payload["StoreID"], False)
-            except:
-                pass
+    diaryEntry = mongo.db.diary_entries.insert_one(Payload)
     return jsonify({"Success": True})
 
-# Indicate that the store received the notification
-@app.route('/readnotification', methods=['POST'])
+
+@app.route('/editEntry', methods=['PUT'])
 @requires_auth
-def readnotification():
+def editEntry():
+    # change request received through endpoint to JSON
     Payload = request.json
-    StoreID = int(Payload["StoreID"])
-    Notification_Search = notification_records.scan(
-        FilterExpression=Attr('StoreID').eq(StoreID))
-    for notification in Notification_Search["Items"]:
-        # notification_records.update_item(
-        #     Key= {
-        #         "ID" : notification["ID"]
-        #     },
-        #     UpdateExpression='SET ReadReceiptStatus = :val1',
-        # ExpressionAttributeValues={
-        #     ':val1': 1
-        # })
-        notification_records.delete_item(
-            Key={
-                "ID": notification["ID"]
-            }
-        )
-    return jsonify({"Success": True})
-
-# register device token
-@app.route('/registerdevice', methods=['POST'])
-@requires_auth
-def registerdevicetoken():
-    # change request to JSON and grab the required variables
-    Payload = request.json
-    DeviceToken = Payload["DeviceToken"]
-    StoreID = Payload["StoreID"]
-    # check if the store exists in MongoDB
-    Device_Search = store_information.scan(
-        FilterExpression=Attr('DeviceToken').eq(DeviceToken))
-
-    if (Device_Search["Count"] == 0):
-        store_information.put_item(
-            Item={"ID": uuid.uuid4().hex, "DeviceToken": DeviceToken, "StoreID": StoreID})
-    else:
-        for Device in Device_Search["Items"]:
-            store_information.update_item(
-                Key={
-                    'ID': Device["ID"]
-                },
-                UpdateExpression='SET StoreID = :val1',
-                ExpressionAttributeValues={
-                    ':val1': StoreID
-                }
-            )
-    return jsonify({"Success": True})
-
-
-@app.route('/getallregistereddevices', methods=['GET'])
-@requires_auth
-def getallregistereddevices():
-    # change request to JSON and grab the required variables
-    Registerd_Devices = []
-    # find all devices
-    Devices = store_information.scan()
-    for device in Devices["Items"]:
-        Registerd_Devices.append({
-            "StoreID": int(device["StoreID"]),
-            "DeviceToken": device["DeviceToken"]
+    current_Datetime = datetime.datetime.now().isoformat()
+    diaryEntry = mongo.db.diary_entries.update_one(
+        {"_id": ObjectId("5ccf129f6061a130ff4a5c17")
+       
+    
+    },
+        {
+            "$set": {
+                "title": "works",
+                "body": "age",
+                "updateTS" : current_Datetime
+                            }
         }
-        )
-    return jsonify({"Success": True, "Payload": Registerd_Devices})
-
-
-@app.route('/deletealldevices', methods=['DELETE'])
-@requires_auth
-def deletealldevices():
-    # change request to JSON and grab the required variables
-    response = store_information.scan()
-    for device in response['Items']:
-        store_information.delete_item(Key={"ID": device["ID"]})
+    )
     return jsonify({"Success": True})
-
-
-@app.route('/sendpushnotification', methods=['POST'])
-@requires_auth
-def pushnotification():
-    Payload = request.json
-    sendpushnotification(
-        Payload["DeviceToken"], Payload["OrderID"], Payload["StoreID"], Payload["dev_flag"])
-    return jsonify({"Sucess": True})
-
-# Finds all of the registered devices for a store
-@app.route('/CheckRegisteredDevices/<int:StoreID>', methods=['GET'])
-@requires_auth
-def CheckRegisteredDevices(StoreID):
-    Registerd_Devices = []
-    Devices = store_information.scan(
-        FilterExpression=Attr('StoreID').eq(StoreID))
-    for device in Devices["Items"]:
-        Registerd_Devices.append({
-            "StoreID": int(device["StoreID"]),
-            "DeviceToken": device["DeviceToken"]
-        }
-        )
-    return jsonify({"Success": True, "Payload": Registerd_Devices})
-
-# Find alerts that have not been acknowledged in a store
-@app.route('/CheckUnreadAlerts/<int:StoreID>', methods=['GET'])
-@requires_auth
-def CheckUnreadAlerts(StoreID):
-    Unread_Alerts = []
-    Alerts = notification_records.scan(FilterExpression=Attr(
-        'StoreID').eq(StoreID) & Attr('ReadReceiptStatus').eq(0))
-    for Alert in Alerts["Items"]:
-        Unread_Alerts.append({
-            "OrderID": Alert["OrderID"],
-            "ReadReceiptStatus": int(Alert["ReadReceiptStatus"])
-        }
-        )
-    return jsonify({"Success": True, "Payload":  Unread_Alerts})
 
 
 if __name__ == "__main__":
