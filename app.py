@@ -49,7 +49,7 @@ def getAllEntries():
     entries = []
     Payload = request.json
     # figure out how to make this work
-    for x in mongo.db.diary_entries.find().sort("entryDate", -1).limit(50).skip(Payload["skip"]):
+    for x in mongo.db.diary_entries.find().sort("entryDate", -1).limit(5).skip(Payload["skip"]):
         print(x)
         entries.append(
             {
