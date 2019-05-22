@@ -12,6 +12,7 @@ mongo = PyMongo(app)
 
 # Checks username and password
 
+
 def check_auth(username, password):
     return username == 'diary' and password == 'diaryapp'
 # Returns if authenticated or not
@@ -39,22 +40,22 @@ def requires_auth(f):
 def hello():
     diary_entry = mongo.db.diary_entries.find_one({'test': 'tesdsds'})
     # figure out how to make this work
-    test = mongo.db.diary_entries.find().sort("entryDate", -1).limit(50)#.skip()
+    test = mongo.db.diary_entries.find().sort("entryDate", -1).limit(5)  # .skip()
     print(test[0])
     return jsonify({"Success": diary_entry['test']})
 
 
-@app.route('/getAllEntries')
+@app.route('/getAllEntries', methods=['POST'])
 def getAllEntries():
     entries = []
     Payload = request.json
     # figure out how to make this work
-    for x in mongo.db.diary_entries.find().sort("entryDate", -1).limit(5).skip(Payload["skip"]):
+    for x in mongo.db.diary_entries.find().sort("entryDate", -1).limit(7).skip(Payload["skip"]):
         print(x)
         entries.append(
             {
-                "_id" : str(x["_id"]),
-                "title" : x["title"],
+                "_id": str(x["_id"]),
+                "title": x["title"],
                 "body": x["body"],
                 "entryDate": x["entryDate"],
                 "updateTS": x["updateTS"]
@@ -63,6 +64,7 @@ def getAllEntries():
     return jsonify({"Success": True,
                     "Data": entries
                     })
+
 
 @app.route('/insertEntry', methods=['POST'])
 @requires_auth
@@ -73,9 +75,10 @@ def insertEntry():
     diaryEntry = mongo.db.diary_entries.insert_one(Payload)
     return jsonify({"Success": True})
 
+
 @app.route('/editEntry', methods=['PUT'])
 @requires_auth
-def editEntry():
+def deleteEntry():
     # change request received through endpoint to JSON
     Payload = request.json
     current_Datetime = datetime.datetime.now().isoformat()
@@ -87,13 +90,27 @@ def editEntry():
         {
             "$set": {
                 "title": Payload["title"],
-                "entryDate" : Payload["entryDate"],
+                "entryDate": Payload["entryDate"],
                 "body": Payload["body"],
                 "updateTS": current_Datetime
             }
         }
     )
     return jsonify({"Success": True})
+
+
+@app.route('/deleteEntry', methods=['POST'])
+@requires_auth
+def editEntry():
+    # change request received through endpoint to JSON
+    Payload = request.json
+    # Gets string from ObjectID
+    diaryEntry = mongo.db.diary_entries.delete_one(
+        {
+            "_id": ObjectId(Payload["_id"])
+        })
+    return jsonify({"Success": True})
+
 
 if __name__ == "__main__":
     # Running the flask app
