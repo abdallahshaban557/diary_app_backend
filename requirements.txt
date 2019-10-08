@@ -2,3 +2,7 @@ flask==1.1.1
 PyMongo==3.8.0
 Flask-PyMongo==2.3.0
 gunicorn==19.9.0
+Flask-Bcrypt==0.7.1
+Flask-JWT-Extended==3.21.0
+flask-mongoengine==0.9.5
+python-dotenv==0.10.3
