@@ -135,10 +135,10 @@ def createUser():
             username=Payload["username"], password=Payload["password"])
         new_user.save()
         access_token = create_access_token(identity={
-                "username": Payload["username"],
-                "id": str(new_user["id"])
-            }, expires_delta=None)
-        return jsonify({"Success": True, "Token" : access_token})
+            "username": Payload["username"],
+            "id": str(new_user["id"])
+        }, expires_delta=None)
+        return jsonify({"Success": True, "Token": access_token})
 
 
 @app.route('/users/login', methods=['POST'])
@@ -158,11 +158,20 @@ def login():
             return jsonify({"Success": True, "Token": access_token})
         else:
             # If username exists - and password is incorrect - return error
-            return jsonify({"Success": False, "Message": "Wrong username/password combination"}), 401
+            return jsonify(
+                {
+                    "Success": False, 
+                    "Message": "Wrong username/password combination"
+                }
+            ), 401
     else:
             # If user does not exist - return error
-        return jsonify({"Success": False, "Message": "username does not exist, please register"}), 401
-
+        return jsonify(
+            {
+                "Success": False, 
+                "Message": "username does not exist, please register"
+            }
+        ), 401
 
 
 @app.route('/users/loginGoogleUser', methods=['POST'])
@@ -175,9 +184,9 @@ def loginGoogleUser():
     user_exists = User.objects(username=Payload["username"])
     if user_exists:
         access_token = create_access_token(identity={
-                "username": user_exists.username,
-                "id": str(user_exists.id)
-            }, expires_delta=None)
+            "username": user_exists.username,
+            "id": str(user_exists.id)
+        }, expires_delta=None)
         # if user exists
         return jsonify({
             "Success": True,
@@ -185,16 +194,21 @@ def loginGoogleUser():
         }), 200
     else:
         # If user does not exist - create in DB
-        Payload["password"] = bcrypt.generate_password_hash(
-            Payload["password"]).decode('utf-8')
         new_user = User(
-            username=Payload["username"], password=Payload["password"])
+            username=Payload["username"],
+            
+            )
         new_user.save()
-        return jsonify({"Success": True})
-
-
-
-
+        access_token = create_access_token(identity={
+                "username": new_user.username,
+                "id": str(new_user.id)
+            }, expires_delta=None)
+        return jsonify(
+            {
+                "Success": True,
+                "Token" : access_token
+            }
+        )
 
 def token_decode(access_token):
     decoded_token = decode_token(access_token)
