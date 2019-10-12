@@ -1,7 +1,7 @@
 from mongoengine import *
 
 
-class DiaryEntry(Document):
+class DiaryEntries(Document):
     title = StringField(max_length=200)
     body = StringField(max_length=10000)
     entryDate = StringField(max_length=50)

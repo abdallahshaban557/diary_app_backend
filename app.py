@@ -10,7 +10,7 @@ from flask_jwt_extended import (create_access_token, decode_token)
 import datetime
 # testing mongoengine
 from models.User import User
-from models.DiaryEntry import DiaryEntry
+from models.DiaryEntry import DiaryEntries
 # for getting environment variables
 import os
 
@@ -55,7 +55,7 @@ def requires_auth(f):
 def getAllEntries():
     entries = []
     Payload = request.json
-    for x in DiaryEntry.objects(userID=Payload["userID"]).order_by("-entryDate").limit(7).skip(Payload["skip"]):
+    for x in DiaryEntries.objects(userID=Payload["userID"]).order_by("-entryDate").limit(7).skip(Payload["skip"]):
         print(x)
         entries.append(
             {
@@ -77,7 +77,7 @@ def getAllEntries():
 def insertEntry():
     # change request received through endpoint to JSON
     Payload = request.json
-    newEntry = DiaryEntry(
+    newEntry = DiaryEntries(
         title=Payload["title"],
         body=Payload["body"],
         entryDate=Payload["entryDate"],
@@ -95,7 +95,7 @@ def deleteEntry():
     Payload = request.json
     current_Datetime = datetime.datetime.now().isoformat()
     # Gets string from ObjectID
-    user_exists = DiaryEntry.objects(id=Payload["_id"]).first().update(
+    user_exists = DiaryEntries.objects(id=Payload["_id"]).first().update(
         set__title=Payload["title"],
         set__entryDate=Payload["entryDate"],
         set__body=Payload["body"],
@@ -109,7 +109,7 @@ def deleteEntry():
 def editEntry():
     # change request received through endpoint to JSON
     Payload = request.json
-    DiaryEntry.objects(id=Payload["_id"]).first().delete()
+    DiaryEntries.objects(id=Payload["_id"]).first().delete()
     return jsonify({"Success": True})
 
 
@@ -152,7 +152,7 @@ def login():
         if bcrypt.check_password_hash(user_exists.password, Payload["password"]):
             # if username exists - and password is correct - create JWT Token
             access_token = create_access_token(identity={
-                "username": user_exists.username,
+                "username": user_exists["username"],
                 "id": str(user_exists.id)
             }, expires_delta=None)
             return jsonify({"Success": True, "Token": access_token})
@@ -181,7 +181,7 @@ def loginGoogleUser():
     Payload = request.json
     # Check if user is in DB
     user_exists = ""
-    user_exists = User.objects(username=Payload["username"])
+    user_exists = User.objects(username=Payload["username"]).first()
     if user_exists:
         access_token = create_access_token(identity={
             "username": user_exists.username,
@@ -195,8 +195,7 @@ def loginGoogleUser():
     else:
         # If user does not exist - create in DB
         new_user = User(
-            username=Payload["username"],
-            
+            username=Payload["username"]
             )
         new_user.save()
         access_token = create_access_token(identity={
