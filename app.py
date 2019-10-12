@@ -25,6 +25,7 @@ mongo = MongoEngine(app)
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 
+basic_auth = BasicAuth(app)
 # Checks username and password
 
 
@@ -52,6 +53,7 @@ def requires_auth(f):
 
 
 @app.route('/getAllEntries', methods=['POST'])
+@requires_auth
 def getAllEntries():
     entries = []
     Payload = request.json
