@@ -25,12 +25,10 @@ mongo = MongoEngine(app)
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 
-basic_auth = BasicAuth(app)
+
 # Checks username and password
-
-
 def check_auth(username, password):
-    return username == 'diary' and password == 'diaryapp'
+    return username == os.environ['USERNAME'] and password == os.environ['PASSWORD']
 # Returns if authenticated or not
 
 
