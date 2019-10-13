@@ -56,7 +56,6 @@ def getAllEntries():
     entries = []
     Payload = request.json
     for x in DiaryEntries.objects(userID=Payload["userID"]).order_by("-entryDate").limit(7).skip(Payload["skip"]):
-        print(x)
         entries.append(
             {
                 "_id": str(x["id"]),
